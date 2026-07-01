@@ -1,5 +1,34 @@
 # tf-molecule-sqs-queue-dlq-aws
-SQS queue with dead letter queue and redrive allow policy.
+
+A tf-label molecule that provisions an SQS main queue wired to a dead letter queue (DLQ) with a redrive policy and a matching redrive-allow policy.
+
+## Features
+
+- Creates a **main SQS queue** and a dedicated **dead letter queue** (`dlq` attribute) from the `tf-atom-sqs-queue-aws` atom.
+- Wires the main queue's **redrive policy** to the DLQ with a configurable `max_receive_count`.
+- Applies a **redrive-allow policy** on the DLQ so only the main queue may target it (`tf-atom-sqs-queue-redrive-allow-policy-aws`).
+- Tunable message handling: `visibility_timeout_seconds`, `message_retention_seconds`, `delay_seconds`, and `max_message_size` on the main queue, plus independent `dlq_message_retention_seconds`.
+- Full tf-label context chaining (`namespace`, `stage`, `name`, `attributes`, `tags`, …) and an `enabled` switch to create nothing when set to `false`.
+
+## Usage
+
+```hcl
+module "sqs_queue_dlq" {
+  source = "git::https://github.com/PlatformStackPulse/tf-molecule-sqs-queue-dlq-aws.git?ref=v1.0.0"
+
+  namespace = "eg"
+  stage     = "prod"
+  name      = "orders"
+
+  visibility_timeout_seconds    = 45
+  message_retention_seconds     = 345600
+  dlq_message_retention_seconds = 1209600
+  delay_seconds                 = 0
+  max_message_size              = 262144
+  max_receive_count             = 5
+}
+```
+
 <!-- BEGIN_TF_DOCS -->
 ### Requirements
 
@@ -64,3 +93,12 @@ No resources.
 | <a name="output_queue_name"></a> [queue\_name](#output\_queue\_name) | Main queue name |
 | <a name="output_queue_url"></a> [queue\_url](#output\_queue\_url) | Main queue URL |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+Plan-only unit tests using a mock AWS provider (no real AWS calls). The unit
+suite lives under `tests/unit/`:
+
+```bash
+terraform init -backend=false && terraform test -test-directory=tests/unit
+```
